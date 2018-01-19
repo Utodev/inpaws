@@ -62,7 +62,7 @@ namespace Inpaws
             void _leerCondacto (PrepEntradaMultiple::Condacto& condacto, PrepTokeniser& tokeniser, Diccionario& diccionario);
             void _leerParametroCondacto(SpByte param, PrepEntradaMultiple::Condacto& condacto,
                                         const ::Inpaws::Condacto* infoCondacto,
-                                        PrepTokeniser& tokeniser, Diccionario& diccionario);
+                                        PrepTokeniser& tokeniser, Diccionario& diccionario, SpByte paramOrder);
 
             // Funciones de apoyo a generarCodigo
             void _volcarProceso (std::ostream& os, const Diccionario& diccionario,

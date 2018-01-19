@@ -43,7 +43,8 @@ namespace Inpaws
         public:
             enum TTokenType {TK_NULL, TK_ERROR, TK_IDENTIFICADOR,
                              TK_NUMERO, TK_LITERAL,TK_CONTROL,
-                             TK_NUMEROGRANDE, TK_NUMEROVOCABULARIO};
+                             TK_NUMEROGRANDE, TK_NUMEROVOCABULARIO,
+                             TK_INDIRECTION};
             struct Tlvalue
             {
                 SpByte valor;

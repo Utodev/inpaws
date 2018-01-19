@@ -47,6 +47,8 @@ PawCondacts::~PawCondacts()
 const Condacto*
 PawCondacts::leeCondacto(SpByte codigo) const
 {
+    // Condactos sobre el 127 son con indirección
+    if (codigo > 127) codigo -= 128;
     // Buscar un condacto que no existe es un error y lanza excepcion
     TCondactosCodigo::const_iterator condacto = _condactosCodigo.find(codigo);
     if (condacto == _condactosCodigo.end())

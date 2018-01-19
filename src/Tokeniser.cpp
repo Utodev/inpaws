@@ -147,6 +147,11 @@ Tokeniser::leeToken()
         else
             _lastToken = TK_ERROR;
     }
+    else if (c == '@')
+    {
+        _lvalue.literal.append(1,c);
+        _lastToken = TK_INDIRECTION;       
+    }
     else if (isprint(c))
     {
         _lvalue.literal.append(1,c);

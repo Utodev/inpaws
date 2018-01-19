@@ -74,6 +74,11 @@ PrepTokeniser::leeToken()
             return leeToken(); // Llamada recursiva, por si nos encontramos un include al principio
         else return _lastToken;
     }
+    if (c == '@')
+    {
+        _lvalue.literal = '@';
+        return TK_INDIRECTION;
+    }
     else
     {
         _is->putback(c);

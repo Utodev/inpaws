@@ -38,6 +38,7 @@ namespace Inpaws
                 SpByte codigo;
                 SpByte prm1;
                 SpByte prm2;
+                SpByte indirection;
 
                 bool operator<(const CondactData& otro) const
                 {
@@ -51,7 +52,8 @@ namespace Inpaws
             Condacto(SpByte codigo , const std::string& nombre,
                      SpByte numParams,
                      int tipo_prm1 = 0, SpByte max_valor_prm1 = 0,
-                     int tipo_prm2 = 0, SpByte max_valor_prm2 = 0);
+                     int tipo_prm2 = 0, SpByte max_valor_prm2 = 0,
+                     SpByte indirection = 0);
 
             ~Condacto();
 
@@ -73,6 +75,7 @@ namespace Inpaws
             SpByte max_valor_prm1() const { return _max_valor_prm1; }
             int tipo_prm2() const { return _tipo_prm2; }
             SpByte max_valor_prm2() const { return _max_valor_prm2; }
+            SpByte indirection() const {return _indirection; }
 
         protected:
         private:
@@ -83,7 +86,8 @@ namespace Inpaws
             SpByte _max_valor_prm1;
             int _tipo_prm2;
             SpByte _max_valor_prm2;
-            void _printNombreOValor(std::ostream& os, SpByte prm, int tipo, const Diccionario::TDiccionarioInverso* diccionario) const;
+            SpByte _indirection;
+            void _printNombreOValor(std::ostream& os, SpByte prm, int tipo, const Diccionario::TDiccionarioInverso* diccionario, SpByte indirection) const;
             bool _tratarCondactoSuperglus (std::ostream& os, const CondactData& dato, const Diccionario::TDiccionarioInverso* diccionario) const;
     };
 }

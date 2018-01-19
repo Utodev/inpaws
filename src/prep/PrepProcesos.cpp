@@ -187,6 +187,7 @@ PrepProcesos::leerDeCodigo(PrepTokeniser& tokeniser, Diccionario& diccionario)
         }
         token = tokeniser.leeToken();
     }
+
 }
 
 void
@@ -325,7 +326,7 @@ PrepProcesos::_leerCondacto (PrepEntradaMultiple::Condacto& condacto, PrepTokeni
         const ::Inpaws::Condacto* infoCondacto = PAWCONDACT(UtilTexto::toUpr(tokeniser.lvalue().literal));
         for (SpByte i = 1; i <= infoCondacto->numParams(); i++)
         {
-            _leerParametroCondacto(i, condacto, infoCondacto, tokeniser, diccionario);
+            _leerParametroCondacto(i, condacto, infoCondacto, tokeniser, diccionario, i);   
         }
     }
     else ERRORPAW(tokeniser.archivoActual(), tokeniser.lineaActual(), tokeniser.errorLeidoEsperado(MSGPREP_NOMCONDACTO), Error::FATAL);
@@ -334,11 +335,24 @@ PrepProcesos::_leerCondacto (PrepEntradaMultiple::Condacto& condacto, PrepTokeni
 void
 PrepProcesos::_leerParametroCondacto(SpByte param, PrepEntradaMultiple::Condacto& condacto,
                                      const ::Inpaws::Condacto* infoCondacto,
-                                     PrepTokeniser& tokeniser, Diccionario& diccionario)
+                                     PrepTokeniser& tokeniser, Diccionario& diccionario, SpByte paramOrder)
 {
     UtilTexto utilTexto;
     PrepTokeniser::TTokenType token = tokeniser.leeToken();
     bool prmLiteralMensaje = false;
+    SpByte hasIndirection = 0;
+
+    // Chequea indireccion y si la hay quita la arroba para el preprocesado
+    if (token == PrepTokeniser::TK_INDIRECTION)
+    {
+        if (paramOrder==1)
+        {
+            token = tokeniser.leeToken();
+            prmLiteralMensaje = false;
+            hasIndirection = 1;
+        } else token = PrepTokeniser::TK_ERROR;
+    }
+
 
     if (token == PrepTokeniser::TK_ERROR)
     {
@@ -397,7 +411,7 @@ PrepProcesos::_leerParametroCondacto(SpByte param, PrepEntradaMultiple::Condacto
         if (prmLiteralMensaje)
             condacto.param1  = "\"" + tokeniser.lvalue().literal + "\"";
         else
-            condacto.param1 = tokeniser.lvalue().literal;
+            condacto.param1 =  (hasIndirection?"@":"") +  (tokeniser.lvalue().literal);
         condacto.lineaParam1 = tokeniser.lineaActual();
         condacto.archivoParam1 = tokeniser.archivoActual();
     }
@@ -473,12 +487,22 @@ void
 PrepProcesos::_volcarCondacto (std::ostream& os, const Diccionario& diccionario,
                       const std::vector<PrepEntradaMultiple::Condacto>::const_iterator& itCond) const
 {
+    std::string Aux;
+    SpByte hasIndirection = 0;
+
     int prm1 = -1, prm2 = -1;
     const ::Inpaws::Condacto* infoCondacto = PAWCONDACT((*itCond).nombre);
 
     if (infoCondacto->numParams() > 0)
     {
-        prm1 = _obtenerValorPrm((*itCond).param1, (*itCond).archivoParam1, (*itCond).lineaParam1, infoCondacto->tipo_prm1(), diccionario);
+        // Check indirection
+        if ((*itCond).param1.substr(0,1)=="@") 
+            {
+                hasIndirection=1;
+                Aux = (*itCond).param1.substr(1,2000);
+            } else Aux = (*itCond).param1;
+        prm1 = _obtenerValorPrm(Aux, (*itCond).archivoParam1, (*itCond).lineaParam1, infoCondacto->tipo_prm1(), diccionario);
+
         if (infoCondacto->numParams() > 1)
             prm2 = _obtenerValorPrm((*itCond).param2, (*itCond).archivoParam2, (*itCond).lineaParam2, infoCondacto->tipo_prm2(), diccionario);
 
@@ -500,15 +524,19 @@ PrepProcesos::_volcarCondacto (std::ostream& os, const Diccionario& diccionario,
 
     os << (*itCond).nombre;
     if (prm1 != -1)
-      os << " " << prm1;
+      os << " " <<  (hasIndirection?"@":"") << prm1;
     if (prm2 != -1)
       os << " " << prm2;
+
 }
 
 int
 PrepProcesos::_obtenerValorPrm(const std::string& valorStr, const string& archivo, unsigned long linea,
                                int tipo, const Diccionario& diccionario) const
 {
+
+
+
     int valorDevuelto;
 
     if (tipo == LOCNO_PLUS)
@@ -548,6 +576,7 @@ PrepProcesos::_obtenerValorPrm(const std::string& valorStr, const string& archiv
         {
             if (_esValorNumerico(valorStr))
             {
+                cout << "güevon\n";
                 valorDevuelto = atoi (valorStr.c_str());
                 if (valorDevuelto > 255)
                     ERRORPAW(archivo, linea, "[" + valorStr + "] " + MSGPREP_VALORALTO, Error::NORMAL);

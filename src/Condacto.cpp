@@ -32,10 +32,10 @@ using namespace std;
 Condacto::Condacto(SpByte codigo , const string& nombre,
                    SpByte numParams,
                    int tipo_prm1, SpByte max_valor_prm1,
-                   int tipo_prm2, SpByte max_valor_prm2)
+                   int tipo_prm2, SpByte max_valor_prm2, SpByte indirection)
 : _codigo(codigo), _nombre (nombre), _numParams (numParams),
   _tipo_prm1(tipo_prm1), _max_valor_prm1(max_valor_prm1),
-  _tipo_prm2(tipo_prm2), _max_valor_prm2(max_valor_prm2)
+  _tipo_prm2(tipo_prm2), _max_valor_prm2(max_valor_prm2), _indirection(indirection)
 {
     //ctor
 }
@@ -48,7 +48,7 @@ Condacto::~Condacto()
 PtrBuffer
 Condacto::volcarAMemoria (PtrBuffer ptrDireccion, const CondactData& dato) const
 {
-    SPBUFFER->bytePoke(ptrDireccion, _codigo);
+    SPBUFFER->bytePoke(ptrDireccion, _codigo + (dato.indirection*128));
     if (_numParams>0)
     {
         if (_tipo_prm1 == VALOR && dato.prm1 > _max_valor_prm1)
@@ -73,6 +73,8 @@ PtrBuffer
 Condacto::volcarDeMemoria (PtrBuffer ptrDireccion, CondactData& dato) const
 {
     dato.codigo = SPBUFFER->bytePeek(ptrDireccion);
+    dato.indirection = dato.codigo & 0x80 >> 7;
+    dato.codigo = dato.codigo & 0x7F;
     if (_numParams>0)
     {
         ptrDireccion++;
@@ -101,7 +103,8 @@ Condacto::generarCodigo (std::ostream& os, const CondactData& dato) const
     os << condacto->nombre();
     if (condacto->numParams() > 0)
     {
-        os << " " << (unsigned int)dato.prm1;
+
+        os << " " <<  (dato.indirection?"@":"") <<  (unsigned int)dato.prm1;
         if (condacto->numParams() > 1)
         {
             os << " " << (unsigned int)dato.prm2;
@@ -125,6 +128,7 @@ Condacto::generarCodigo (std::ostream& os, const CondactData& dato,
     if (condacto->numParams() > 0)
     {
         if (condacto->numParams()) os << " ";
+        if (condacto->indirection()) os << "@";
 
         if (condacto->nombre() == "ADJECT1" || condacto->nombre() == "ADJECT2" ||
             condacto->nombre() == "ADVERB" || condacto->nombre() == "PREP" ||
@@ -149,14 +153,14 @@ Condacto::generarCodigo (std::ostream& os, const CondactData& dato,
                 os << palabra->palabra(flagsDeFormato);
             }
         }
-        else _printNombreOValor(os, dato.prm1, tipo_prm1(), diccionario);
+        else _printNombreOValor(os, dato.prm1, tipo_prm1(), diccionario, dato.indirection);
 
         if (condacto->numParams() > 1)
         {
             if (condacto->nombre() != "MODE" || !(flagsDeFormato&(VERPC+VERCPM+VERGLULX)))
             {
                 os << " ";
-                _printNombreOValor(os, dato.prm2, tipo_prm2(), diccionario);
+                _printNombreOValor(os, dato.prm2, tipo_prm2(), diccionario, 0); // 0= no indirection in param2
             }
         }
     }
@@ -172,10 +176,18 @@ Condacto::leerDeCodigo (Tokeniser& tokeniser, CondactData& dato) const
     else
         dato.codigo = PAWCONDACT(tokeniser.lvalue().literal)->codigo();
 
+    dato.indirection = 0;
     // Primer parametro
     if (PAWCONDACT(dato.codigo)->numParams() > 0)
     {
         token = tokeniser.leeToken();
+        if (token == Tokeniser::TK_INDIRECTION)
+        {
+            dato.indirection = 1;
+            token = tokeniser.leeToken();
+        }
+    
+
         if (token != Tokeniser::TK_NUMERO)
         {
             throw ExcTokeniser(tokeniser.errorLeidoEsperado(MSG_PARAMETRO_CONDACTO));
@@ -208,8 +220,11 @@ Condacto::leerDeCodigo (Tokeniser& tokeniser, CondactData& dato) const
 }
 
 void
-Condacto::_printNombreOValor(ostream& os, SpByte prm, int tipo, const Diccionario::TDiccionarioInverso* diccionario) const
+Condacto::_printNombreOValor(ostream& os, SpByte prm, int tipo, const Diccionario::TDiccionarioInverso* diccionario, SpByte indirection) const
 {
+    // Add indirection
+    if (indirection) os << '@';
+
     if (!diccionario)
         os << (unsigned int)prm;
     else
